@@ -1,0 +1,10 @@
+{
+  "name": "gbian-local-debug",
+  "description": "J-Link/GDB bench debugging for the STM32 boards: debugger screenshots, live variable watching over J-Link, own GDB sessions",
+  "version": "0.1.0",
+  "author": {
+    "name": "gregorybian",
+    "url": "https://github.com/gregorybian"
+  },
+  "repository": "https://github.com/UBC-Solar/sunskills"
+}

@@ -1,0 +1,20 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "sunskills",
+  "description": "UBC Solar's Claude Code plugins: skills, commands and agents for the team's firmware and tooling",
+  "owner": {
+    "name": "UBC Solar"
+  },
+  "plugins": [
+    {
+      "name": "gbian-local-debug",
+      "description": "J-Link/GDB bench debugging for the STM32 boards: debugger screenshots, live variable watching over J-Link, own GDB sessions",
+      "author": {
+        "name": "gregorybian",
+        "url": "https://github.com/gregorybian"
+      },
+      "source": "./emb-plugins/gbian-local-debug",
+      "category": "development"
+    }
+  ]
+}
