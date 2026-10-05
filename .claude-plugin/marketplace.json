@@ -15,6 +15,16 @@
       },
       "source": "./emb-plugins/gbian-local-debug",
       "category": "development"
+    },
+    {
+      "name": "gbian-emb-ticket",
+      "description": "Create EMB tickets on the EMB Projects Monday board from a short description, with the team's Description / Definition of Done first update",
+      "author": {
+        "name": "gregorybian",
+        "url": "https://github.com/gregorybian"
+      },
+      "source": "./emb-plugins/gbian-emb-ticket",
+      "category": "productivity"
     }
   ]
 }

@@ -1,0 +1,10 @@
+{
+  "name": "gbian-emb-ticket",
+  "description": "Create EMB tickets on the EMB Projects Monday board from a short description, with the team's Description / Definition of Done first update",
+  "version": "0.2.0",
+  "author": {
+    "name": "gregorybian",
+    "url": "https://github.com/gregorybian"
+  },
+  "repository": "https://github.com/UBC-Solar/sunskills"
+}
