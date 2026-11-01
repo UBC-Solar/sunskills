@@ -34,7 +34,7 @@ GREY = "#8e8e8e"       # normal / OK / off / no information
 DARK = "#464c54"       # inactive fill in timelines
 BLUE = "#5794f2"       # active / advisory (an input is on, a mode is engaged)
 ORANGE = "#ff9830"     # caution / marginal
-RED = "#f2495c"        # fault / failure / out of limits
+RED = "#ff1a1a"        # fault / failure / out of limits (saturated: it must look angry)
 TRANSPARENT = "transparent"
 
 GRID_W = 24
@@ -131,12 +131,22 @@ def _panel(ptype: str, title: str, targets: list, defaults: dict, options: dict,
 def stat(title: str, query: str, unit: str, thresholds=None, mappings=None, decimals=None,
          description: str = "", sparkline: bool = True, vmin=None, vmax=None) -> dict:
     """Single value. Use for current state at a glance; prefer trend() when the history matters."""
+    # Tiles fill with colour only when abnormal: normal grey becomes transparent, so a red
+    # or orange tile is the only filled thing on the row.
+    thresholds = thresholds or steps((None, GREY))
+    for st in thresholds["steps"]:
+        if st["color"] == GREY:
+            st["color"] = TRANSPARENT
+    for m in mappings or []:
+        for r in ([m["options"]["result"]] if m["type"] == "range" else m["options"].values()):
+            if r.get("color") in (GREY, DARK, BLUE):
+                r["color"] = TRANSPARENT
     return _panel(
         "stat", title, [target(query)],
         _defaults(unit, thresholds, mappings, decimals, vmin, vmax),
         {
             "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": False},
-            "colorMode": "value", "graphMode": "area" if sparkline else "none",
+            "colorMode": "background", "graphMode": "area" if sparkline else "none",
             "justifyMode": "auto", "orientation": "auto", "textMode": "auto",
         },
         description,

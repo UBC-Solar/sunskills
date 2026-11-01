@@ -40,6 +40,9 @@ The method distils four sources (summaries in `references/`):
    less common mode). Orange = caution/marginal/timeout/unknown. Red = fault/out of limit.
    Never red or green as the only cue; every coloured state also has text. No decorative
    colour, 3D or animation. Values outside an enum table read "UNKNOWN" in orange.
+   Alarm red is saturated (#ff1a1a) so it reads as an alarm, not decoration. Stat tiles fill
+   with colour only when abnormal (normal and advisory states stay unfilled), so a red tile is
+   the only filled thing on the row.
 5. **Every numeric panel has a unit** (Grafana unit id or `suffix: <unit>`), and every panel
    title is `<BOARD>: <Signal> (<unit>)` per sunlink `docs/GRAFANA.md`. Dashboard titles are
    `<BUCKETS>: <TITLE> - <CAR>` with a fixed uid. Put the meaning and the source of each
