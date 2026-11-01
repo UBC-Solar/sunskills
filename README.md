@@ -8,6 +8,7 @@ UBC Solar's [Claude Code plugin](https://docs.claude.com/en/docs/claude-code/plu
 /plugin marketplace add UBC-Solar/sunskills
 /plugin install gbian-local-debug@sunskills
 /plugin install gbian-emb-ticket@sunskills
+/plugin install clbears-hmi-design@sunskills
 ```
 
 For a local checkout, use `/plugin marketplace add ./sunskills` instead. Run `/plugin marketplace update sunskills` to pull new versions.
@@ -20,6 +21,12 @@ For a local checkout, use `/plugin marketplace add ./sunskills` instead. Run `/p
 |---|---|---|
 | `gbian-local-debug` | [gregorybian](https://github.com/gregorybian) | `local-debug` skill: J-Link/GDB bench debugging on the STM32 boards |
 | `gbian-emb-ticket` | [gregorybian](https://github.com/gregorybian) | `emb-ticket` skill: create EMB tickets on the Monday board (needs `MONDAY_TOKEN`) |
+
+### strat-plugins
+
+| Plugin | Owner | Contents |
+|---|---|---|
+| `clbears-hmi-design` | [clbears](https://github.com/clbears) | `telemetry-hmi` skill: design/review Grafana, LCD and Sunglasses displays with situation-awareness and high-performance HMI principles; Grafana dashboard generator, DBC-aware dashboard linter, live panel check |
 
 ## Teams
 
