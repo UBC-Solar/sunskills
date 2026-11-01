@@ -27,7 +27,7 @@ CAR = "Cascadia"
 
 
 def mcu_health(b: Board, d: Dash, cls: str, v_field: str, t_field: str, uv_mv: int, ot_c: int, w: int = 4):
-    d.add(stat(b.t("MCU Vdd", "mV"), b.q(cls, v_field), "mvolt", steps((None, RED), (uv_mv, GREY)), decimals=0,
+    d.add(stat(b.t("MCU Vdd", "mV"), b.q(cls, v_field), "suffix: mV", steps((None, RED), (uv_mv, GREY)), decimals=0,
                description=f"{v_field}: MCU supply. Red below {uv_mv} mV, where firmware sets the undervoltage flag. "
                            "0 means the ADC read failed."), w=w, h=5)
     d.add(stat(b.t("MCU temperature", "°C"), b.q(cls, t_field), "celsius", steps((None, GREY), (ot_c, RED)),
@@ -135,7 +135,7 @@ def mdi() -> Dash:
                                "MDI firmware, so it always reads OK."), w=24, h=6)
     d.row("Motor temperature")
     d.add(trend(b.t("Motor temperature", "°C"), b.q("MDIMotorTemperature", "MotorTemperature"), "celsius",
-                limits={"caution_high": 95, "high": 100}, decimals=0,
+                limits={"caution_high": 95, "high": 100}, decimals=0, vmin=0,
                 description="Trend against the overtemp band (95 °C clear / 100 °C set). Watch the slope to "
                             "see the limit coming."), w=16, h=9)
     d.add(timeline(b.t("RTD read"), b.q("MDIMotorTemperature", ["RTDReadSuccess"], "min"),
