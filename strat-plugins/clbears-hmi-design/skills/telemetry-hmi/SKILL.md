@@ -32,6 +32,9 @@ The method distils four sources (summaries in `references/`):
      uptime (reset detector), MCU Vdd / temperature with the firmware fault limit as the
      red threshold, the board's key state, and **one fault strip** (state timeline, OK grey /
      FAULT red, `max` per window so a single faulted frame is never averaged away).
+     Left of the strip, a **fault status tile** (`Board.fault_block`): ACTIVE FAULT (red) if any
+     bit is set in the latest frame, FAULT IN WINDOW (yellow) if one was set in the range shown
+     but has cleared, NO FAULTS (unfilled) otherwise.
    - **Rows 2+, grouped data:** one row per goal (e.g. GPS position & status, motion, IMU).
      Trends with the alarm band drawn in, at most 4 traces each; enums and bits as state
      timelines with a word for every state.

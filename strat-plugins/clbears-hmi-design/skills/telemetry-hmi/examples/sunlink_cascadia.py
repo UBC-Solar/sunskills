@@ -52,10 +52,9 @@ def tel() -> Dash:
                mappings=value_map(GPS_FIX), sparkline=False,
                description="GpsFixType. Only 3D fix is normal; anything else is shown in orange with its name."),
           w=4, h=5)
-    d.add(b.faults("TELDiagnostics", ["TELWatchdogReset", "IMUReadFail", "IMUWriteFail", "GPSReadFail",
+    b.fault_block(d, "TELDiagnostics", ["TELWatchdogReset", "IMUReadFail", "IMUWriteFail", "GPSReadFail",
                                       "GPSWriteFail", "MCUOvertemp", "MCUUndervoltage"],
-                   description="TELDiagnostics bits (max per window, so a single faulted frame is never averaged away)."),
-          w=24, h=6)
+                   description="TELDiagnostics bits (max per window, so a single faulted frame is never averaged away).", w=24, h=6)
 
     d.row("GPS position & status")
     d.add(geomap(b.t("GPS track"), "TEL", "TELGpsPosition", "GpsLatitude", "GpsLongitude",
@@ -129,10 +128,10 @@ def mdi() -> Dash:
                mappings=value_map({0: ("FAILED", RED), 1: ("OK", GREY)}), sparkline=False,
                description="RTDReadSuccess (worst in window). FAILED means the temperature above is not valid."),
           w=6, h=5)
-    d.add(b.faults("MDIDiagnostics", ["MDIWatchdogReset", "MDIVoltageOverThreshold", "MDIMotorOverTemp",
+    b.fault_block(d, "MDIDiagnostics", ["MDIWatchdogReset", "MDIVoltageOverThreshold", "MDIMotorOverTemp",
                                       "MDIRTDFault", "MDIRTDCommError"],
                    description="MDIDiagnostics bits. MDIVoltageOverThreshold is defined but not set by current "
-                               "MDI firmware, so it always reads OK."), w=24, h=6)
+                               "MDI firmware, so it always reads OK.", w=24, h=6)
     d.row("Motor temperature")
     d.add(trend(b.t("Motor temperature", "°C"), b.q("MDIMotorTemperature", "MotorTemperature"), "celsius",
                 limits={"caution_high": 95, "high": 100}, decimals=0, vmin=0,
@@ -164,9 +163,9 @@ def drd() -> Dash:
                description="DriveState as DRD sees it."), w=4, h=5)
     d.add(stat(b.t("SOC", "%"), b.q("DRDDiagnostics", "SOC", "last"), "percent", decimals=0, vmin=0, vmax=104,
                description="State of charge shown to the driver (can read up to 104 %, SOC_MAX = 1.04)."), w=4, h=5)
-    d.add(b.faults("DRDDiagnostics", ["ADCOutOfRange", "ADCMismatch", "DRDWatchdogReset", "MotorCommFault",
+    b.fault_block(d, "DRDDiagnostics", ["ADCOutOfRange", "ADCMismatch", "DRDWatchdogReset", "MotorCommFault",
                                       "DRDMCUOverTemp", "DRDMCUUnderVoltage"],
-                   description="DRDDiagnostics fault bits."), w=12, h=6)
+                   description="DRDDiagnostics fault bits.", w=12, h=6, tile_w=4)
     d.add(timeline(b.t("Cyclic data timeouts"),
                    b.q("DRDDiagnostics", ["SpeedTimeout", "DriveStateTimeout", "SOCTimeout", "VoltageTimeout",
                                           "CurrentTimeout", "AccelTimeout"], "max"),
@@ -208,9 +207,9 @@ def strd() -> Dash:
     d.add(b.freshness("STRTimeSinceBootup"), w=6, h=5)
     d.add(b.uptime("STRTimeSinceBootup", "STRTimeSinceBootUp"), w=6, h=5)
     mcu_health(b, d, "STRMCUHealth", "STRMCUVoltage", "STRMCUTemperature", 2400, 105, w=6)
-    d.add(b.faults("STRFlags", ["STRMCUUnderVoltage", "STRMCUOverTemp"],
+    b.fault_block(d, "STRFlags", ["STRMCUUnderVoltage", "STRMCUOverTemp"],
                    description="STRFlags. Current STR firmware has no watchdog-reset flag "
-                               "(STRDiagnostics 0x582 is not sent)."), w=24, h=4)
+                               "(STRDiagnostics 0x582 is not sent).", w=24, h=4)
     d.row("Driver controls")
     d.add(timeline(b.t("Buttons & switches"),
                    b.q("STRDRDControl", ["STRRegenEnabled", "STRCruiseEnabled", "STRLeftTurnSignalEnabled",

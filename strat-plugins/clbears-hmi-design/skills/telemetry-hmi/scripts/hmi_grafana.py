@@ -34,6 +34,7 @@ GREY = "#8e8e8e"       # normal / OK / off / no information
 DARK = "#464c54"       # inactive fill in timelines
 BLUE = "#5794f2"       # active / advisory (an input is on, a mode is engaged)
 ORANGE = "#ff9830"     # caution / marginal
+YELLOW = "#f2cc0c"     # a fault happened in the window shown but is not active now
 RED = "#ff1a1a"        # fault / failure / out of limits (saturated: it must look angry)
 TRANSPARENT = "transparent"
 
@@ -312,6 +313,39 @@ class Board:
 
     def faults(self, cls: str, fields: list[str], title: str = "Faults", description: str = "") -> dict:
         return timeline(self.t(title), self.q(cls, fields, "max"), OK_FAULT, description)
+
+    def fault_status(self, cls: str, fields: list[str]) -> dict:
+        """One tile summarising a fault strip: red if any bit is set in the latest frame,
+        yellow if any bit was set somewhere in the time range shown, unfilled otherwise."""
+        field_expr = " or ".join(f'r["_field"] == "{f}"' for f in fields)
+        q = (
+            f'data = from(bucket: "{BUCKET}")\n'
+            f'  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n'
+            f'  |> filter(fn: (r) => r["_measurement"] == "{self.name}")\n'
+            f'  |> filter(fn: (r) => r["class"] == "{cls}")\n'
+            f'  |> filter(fn: (r) => {field_expr})\n'
+            f'  |> keep(columns: ["_time", "_value", "_field"])\n'
+            f'  |> toInt()\n'
+            f'active = data |> last() |> map(fn: (r) => ({{r with _value: r._value * 2}}))\n'
+            f'seen = data |> max()\n'
+            f'union(tables: [active, seen])\n'
+            f'  |> group()\n'
+            f'  |> max()\n'
+            f'  |> map(fn: (r) => ({{_time: r._time, _field: "Fault status", _value: r._value}}))\n'
+            f'  |> yield(name: "status")'
+        )
+        return stat(self.t("Fault status"), q, "none", sparkline=False,
+                    mappings=value_map({0: ("NO FAULTS", GREY), 1: ("FAULT IN WINDOW", YELLOW),
+                                        2: ("ACTIVE FAULT", RED)}, unknown=False),
+                    description="ACTIVE FAULT (red): a bit on the fault strip is set in the latest frame. "
+                                "FAULT IN WINDOW (yellow): a bit was set somewhere in the time range shown "
+                                "but none is set now. NO FAULTS: nothing set in the range.")
+
+    def fault_block(self, d: "Dash", cls: str, fields: list[str], w: int = 24, h: int = 6,
+                    tile_w: int = 4, description: str = ""):
+        """Fault status tile + fault strip side by side (tile on the left)."""
+        d.add(self.fault_status(cls, fields), w=tile_w, h=h)
+        d.add(self.faults(cls, fields, description=description), w=w - tile_w, h=h)
 
 
 # ----------------------------------------------------------------------------- dashboard layout
