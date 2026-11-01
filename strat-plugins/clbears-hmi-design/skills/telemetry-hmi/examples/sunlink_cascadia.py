@@ -165,7 +165,7 @@ def drd() -> Dash:
                description="State of charge shown to the driver (can read up to 104 %, SOC_MAX = 1.04)."), w=4, h=5)
     b.fault_block(d, "DRDDiagnostics", ["ADCOutOfRange", "ADCMismatch", "DRDWatchdogReset", "MotorCommFault",
                                       "DRDMCUOverTemp", "DRDMCUUnderVoltage"],
-                   description="DRDDiagnostics fault bits.", w=12, h=6, tile_w=4)
+                   description="DRDDiagnostics fault bits.", w=12, h=6)
     d.add(timeline(b.t("Cyclic data timeouts"),
                    b.q("DRDDiagnostics", ["SpeedTimeout", "DriveStateTimeout", "SOCTimeout", "VoltageTimeout",
                                           "CurrentTimeout", "AccelTimeout"], "max"),

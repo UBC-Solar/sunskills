@@ -90,6 +90,7 @@ def value_map(mapping: dict, unknown: bool = True) -> list:
 
 
 OK_FAULT = {0: ("OK", GREY), 1: ("FAULT", RED)}
+FAULT_STATES = {0: ("OK", GREY), 1: ("CLEARED", YELLOW), 2: ("FAULT", RED)}
 OFF_ON = {0: ("OFF", DARK), 1: ("ON", BLUE)}
 NO_YES = {0: ("NO", DARK), 1: ("YES", BLUE)}
 
@@ -312,40 +313,32 @@ class Board:
                     description=f"{field}: seconds since boot. A drop to ~0 means the board reset.")
 
     def faults(self, cls: str, fields: list[str], title: str = "Faults", description: str = "") -> dict:
-        return timeline(self.t(title), self.q(cls, fields, "max"), OK_FAULT, description)
-
-    def fault_status(self, cls: str, fields: list[str]) -> dict:
-        """One tile summarising a fault strip: red if any bit is set in the latest frame,
-        yellow if any bit was set somewhere in the time range shown, unfilled otherwise."""
+        """Fault strip. Each row: OK (grey) until the signal faults, FAULT (red) while it is set,
+        then CLEARED (yellow) for the rest of the time range shown, so a past fault stays visible
+        without a separate status tile."""
         field_expr = " or ".join(f'r["_field"] == "{f}"' for f in fields)
         q = (
-            f'data = from(bucket: "{BUCKET}")\n'
+            f'from(bucket: "{BUCKET}")\n'
             f'  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n'
             f'  |> filter(fn: (r) => r["_measurement"] == "{self.name}")\n'
             f'  |> filter(fn: (r) => r["class"] == "{cls}")\n'
             f'  |> filter(fn: (r) => {field_expr})\n'
+            f'  |> aggregateWindow(every: v.windowPeriod, fn: max, createEmpty: false)\n'
             f'  |> keep(columns: ["_time", "_value", "_field"])\n'
             f'  |> toInt()\n'
-            f'active = data |> last() |> map(fn: (r) => ({{r with _value: r._value * 2}}))\n'
-            f'seen = data |> max()\n'
-            f'union(tables: [active, seen])\n'
-            f'  |> group()\n'
-            f'  |> max()\n'
-            f'  |> map(fn: (r) => ({{_time: r._time, _field: "Fault status", _value: r._value}}))\n'
-            f'  |> yield(name: "status")'
+            f'  |> duplicate(column: "_value", as: "now")\n'
+            f'  |> cumulativeSum(columns: ["_value"])\n'
+            f'  |> map(fn: (r) => ({{_time: r._time, _field: r._field,'
+            f' _value: if r.now > 0 then 2 else if r._value > 0 then 1 else 0}}))\n'
+            f'  |> yield(name: "fault_state")'
         )
-        return stat(self.t("Fault status"), q, "none", sparkline=False,
-                    mappings=value_map({0: ("NO FAULTS", GREY), 1: ("FAULT IN WINDOW", YELLOW),
-                                        2: ("ACTIVE FAULT", RED)}, unknown=False),
-                    description="ACTIVE FAULT (red): a bit on the fault strip is set in the latest frame. "
-                                "FAULT IN WINDOW (yellow): a bit was set somewhere in the time range shown "
-                                "but none is set now. NO FAULTS: nothing set in the range.")
+        return timeline(self.t(title), q, FAULT_STATES,
+                        (description + " " if description else "") +
+                        "Per row: OK, FAULT (red) while set, CLEARED (yellow) once it has faulted in the "
+                        "time range shown. Zoom the time range past an old fault to clear the yellow.")
 
-    def fault_block(self, d: "Dash", cls: str, fields: list[str], w: int = 24, h: int = 6,
-                    tile_w: int = 4, description: str = ""):
-        """Fault status tile + fault strip side by side (tile on the left)."""
-        d.add(self.fault_status(cls, fields), w=tile_w, h=h)
-        d.add(self.faults(cls, fields, description=description), w=w - tile_w, h=h)
+    def fault_block(self, d: "Dash", cls: str, fields: list[str], w: int = 24, h: int = 6, description: str = ""):
+        d.add(self.faults(cls, fields, description=description), w=w, h=h)
 
 
 # ----------------------------------------------------------------------------- dashboard layout
