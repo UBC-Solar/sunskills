@@ -111,6 +111,8 @@ def tel() -> Dash:
     d.add(trend(b.t("IMU magnetic field", "µT"), b.q_multi([("TELImuMX", "ImuMXMag"), ("TELImuMY", "ImuMYMag"),
                                                            ("TELImuMZ", "ImuMZMag")]),
                 "suffix: µT", decimals=1, description="Magnetometer, X/Y/Z."), w=8, h=8)
+    d.row("Raw / diagnostic (bench, bug reports)", collapsed=True)
+    d.add(b.raw_table(), w=24, h=14)
     return d
 
 
@@ -158,6 +160,8 @@ def mdi() -> Dash:
                    description="MAX31865 fault register: 0x80 RTD high (open), 0x40 RTD low (short), "
                                "0x04 over/undervoltage. Other values: several bits at once (UNKNOWN)."),
           w=8, h=5, below=True)
+    d.row("Raw / diagnostic (bench, bug reports)", collapsed=True)
+    d.add(b.raw_table(), w=24, h=14)
     return d
 
 
@@ -213,6 +217,8 @@ def drd() -> Dash:
           w=12, h=7)
     d.add(trend(b.t("SOC", "%"), b.q("DRDDiagnostics", "SOC", "last"), "percent", vmin=0, vmax=104, decimals=0,
                 description="SOC as displayed on the driver LCD."), w=12, h=7)
+    d.row("Raw / diagnostic (bench, bug reports)", collapsed=True)
+    d.add(b.raw_table(), w=24, h=14)
     return d
 
 
@@ -244,6 +250,8 @@ def strd() -> Dash:
     d.add(trend(b.t("Cruise set speed", "km/h"), b.q("STRDRDControl", "STRCruiseSetVelocity", "last"),
                 "velocitykmh", vmin=0, decimals=0, description="STRCruiseSetVelocity requested by the driver."),
           w=8, h=10)
+    d.row("Raw / diagnostic (bench, bug reports)", collapsed=True)
+    d.add(b.raw_table(), w=24, h=14)
     return d
 
 

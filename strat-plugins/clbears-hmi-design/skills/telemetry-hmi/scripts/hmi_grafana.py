@@ -425,6 +425,36 @@ class Board:
                         "Per row: OK, FAULT (red) while set, CLEARED (yellow) once it has faulted in the "
                         "time range shown. Zoom the time range past an old fault to clear the yellow.")
 
+    def raw_table(self) -> dict:
+        """Every signal this board sent in the time range: latest value, message and time.
+        For bench work and bug reports (which signal read what, when)."""
+        q = (
+            f'from(bucket: "{BUCKET}")\n'
+            f'  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n'
+            f'  |> filter(fn: (r) => r["_measurement"] == "{self.name}")\n'
+            f'  |> last()\n'
+            f'  |> toFloat()\n'
+            f'  |> keep(columns: ["_time", "class", "_field", "_value"])\n'
+            f'  |> group()\n'
+            f'  |> sort(columns: ["class", "_field"])\n'
+            f'  |> rename(columns: {{class: "Message", _field: "Signal", _value: "Latest value", _time: "Received"}})\n'
+            f'  |> yield(name: "raw")'
+        )
+        return {
+            "type": "table", "title": self.t("All signals (latest raw values)"),
+            "description": "Every signal this board sent in the time range, decoded with the DBC: latest value "
+                           "and when it arrived. Use for bench checks and when filing a bug.",
+            "datasource": DATASOURCE, "targets": [target(q)],
+            "fieldConfig": {"defaults": {"unit": "none", "custom": {"align": "auto", "filterable": True},
+                                         "color": {"mode": "thresholds"}, "thresholds": steps((None, GREY)),
+                                         "mappings": []},
+                            "overrides": [{"matcher": {"id": "byName", "options": "Received"},
+                                           "properties": [{"id": "unit", "value": "dateTimeAsLocal"}]}]},
+            "options": {"showHeader": True, "cellHeight": "sm", "footer": {"show": False},
+                        "sortBy": [{"displayName": "Message", "desc": False}]},
+            "pluginVersion": "9.5.2",
+        }
+
     def fault_block(self, d: "Dash", cls: str, fields: list[str], w: int = 24, h: int = 6, description: str = ""):
         d.add(self.faults(cls, fields, description=description), w=w, h=h)
 
