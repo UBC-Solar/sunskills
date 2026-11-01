@@ -1,7 +1,7 @@
 {
   "name": "clbears-hmi-design",
   "description": "Design and review telemetry displays (Grafana dashboards, driver LCD, Sunglasses) with situation-awareness and high-performance HMI principles, plus a Grafana dashboard generator and a DBC-aware dashboard linter",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "author": {
     "name": "clbears",
     "url": "https://github.com/clbears"

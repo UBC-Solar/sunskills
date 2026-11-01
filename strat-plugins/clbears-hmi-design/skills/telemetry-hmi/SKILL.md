@@ -1,6 +1,6 @@
 ---
 name: telemetry-hmi
-description: Design, generate or review telemetry displays for UBC Solar (sunlink Grafana dashboards, the DRD driver LCD, Sunglasses strategy views) using situation-awareness and high-performance-HMI principles. Includes a Grafana dashboard generator with one consistent board layout, a linter that checks dashboard JSON against the car's DBC, and a live check that every panel returns data. Use when asked to build, rebuild, clean up, review or "make readable" a dashboard, panel or display, or to port dashboards to a new car/DBC.
+description: Design, generate or review telemetry displays for UBC Solar (sunlink Grafana dashboards, the DRD driver LCD, Sunglasses strategy views) using situation-awareness and high-performance-HMI principles. Includes a Grafana dashboard generator with one consistent board layout, a linter that checks dashboard JSON against the car's DBC, and a live check that every panel returns data. Starts by asking the people who will use the display about their goals, situation and limits. Use when asked to build, rebuild, clean up, review or "make readable" a dashboard, panel or display, or to port dashboards to a new car/DBC.
 ---
 
 # Telemetry HMI
@@ -16,9 +16,39 @@ The method distils four sources (summaries in `references/`):
 | Wickens 2008, multiple resources (`references/wickens-multiple-resources.md`) | Pit crew share attention between radio (auditory-verbal) and screen (visual-spatial): favour spatial/analog encodings, short text, few traces |
 | FAA HF-STD-001B (`references/faa-hf-std-001b.md`) | Concrete rules: reserved colour meanings, at most 4 colours per screen, labelled axes with units, no more than 1 alphanumeric update per second, flashing only for urgent alarms |
 
+## Step 0: ask the people who will use it (always, before designing)
+
+The users know things no DBC or firmware file says: who is watching, during what, which
+decisions they make, what "wrong" looks like, and what they are doing with their other hand.
+Endsley's goal-directed task analysis and PAS steps 3-4 (performance goals, task analysis)
+both start here, and Wickens' point about concurrent tasks (radio, driving, debugging) can only
+come from them. So **interview first**, and keep asking at the checkpoints below.
+
+How to ask:
+- Use the AskUserQuestion tool when it is available; otherwise ask in plain text.
+- **Short rounds:** at most 4 questions per round, each with 2-4 concrete options and your
+  recommended default marked, so answering takes seconds. Free text is always allowed.
+- Ask only what changes the design. Skip anything the code, DBC, firmware or an earlier
+  answer already settles, and say what you assumed instead.
+- If the user says "just use defaults", proceed, but list every assumption in your summary.
+
+Round 1, context (before any layout): who reads it and when; the situation (race, bench test,
+debugging, demo); the decisions they make from it; what they are doing at the same time.
+Round 2, what matters (after reading the DBC/firmware, before generating): which signals are
+critical vs nice to have; what "abnormal" means where firmware has no limit; what must be
+noticed out of the corner of the eye; screen/viewing conditions.
+Checkpoints (during and after): **confirm every threshold that is your judgement rather than
+firmware** (say which is which); show a screenshot and ask what is hard to read or easy to miss;
+when a request is ambiguous (e.g. "make it stand out", "this looks stupid"), offer 2-3 concrete
+alternatives with previews instead of guessing.
+
+Question bank with UBC Solar defaults: `references/interview-questions.md`. Record the answers
+(who, situation, decisions, thresholds and their source) in the PR or design notes, so the next
+person knows why the display looks the way it does.
+
 ## Method
 
-1. **Task analysis first.** For each board/view, write down who reads it and their goals.
+1. **Task analysis first**, built from the step-0 answers. For each board/view, write down who reads it and their goals.
    For each goal list the L1 elements (what to perceive), L2 (what they mean: in band?
    reset? stuck?) and L3 (where they are heading: trend toward a limit). Only signals that
    serve a goal go on the top half of the screen.
@@ -94,6 +124,7 @@ STR) and is the reference for new boards: `python examples/sunlink_cascadia.py <
 
 ## Review checklist
 
+- [ ] Users interviewed (step 0); judgement thresholds confirmed with them, sources noted
 - [ ] Health and faults row on top, same layout as the other boards
 - [ ] Every fault/flag bit in the DBC for this board is on the fault strip
 - [ ] Thresholds match firmware limits (cited in the description)
