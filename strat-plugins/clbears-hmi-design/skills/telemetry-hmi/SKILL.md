@@ -28,10 +28,16 @@ The method distils four sources (summaries in `references/`):
    firmware sends it → fix the DBC; firmware doesn't → fix or drop the panel. Write the
    evidence (file:line) into the PR.
 3. **Use the standard board skeleton** (all boards identical, so readers know where to look):
-   - **Fault banner (very top, full width, `Board.fault_banner`):** blank until a fault bit is
-     set, then solid red "ACTIVE FAULT: <signals>". Full width so it is caught in peripheral
-     vision; no text otherwise so it doesn't compete for attention. Cleared faults are not on the
-     banner (they are yellow CLEARED on the strip).
+   - **Fault banner (very top, full width, `Board.fault_banner`):** blank when all is normal.
+     Solid red "ACTIVE FAULT: <bits>" while a firmware fault bit is set; solid orange
+     "WARNING: <conditions>" when something is wrong that isn't a fault bit: link lost, board
+     rebooted < 60 s ago, a sensor not reading, no GPS satellites/fix, a value in its caution
+     band, a cyclic-data timeout. Both at once: red, faults then warnings. Full width so it is
+     caught in peripheral vision. Cleared faults are not on the banner (yellow CLEARED on the
+     strip). Warning checks are `{"cls","field","when","text","show","unit"}` dicts.
+   - Flux gotcha: a `map()` that returns a fresh record built only from constants yields no
+     rows; use `{r with _value: ...}` then `keep()`. `union()` needs two or more streams, and
+     `findColumn()` reads only the first table, so `group()` before it.
    - **Row 1, Health & faults:** link freshness (s since last frame, red when stale),
      uptime (reset detector), MCU Vdd / temperature with the firmware fault limit as the
      red threshold, the board's key state, and **one fault strip** (state timeline, OK grey /

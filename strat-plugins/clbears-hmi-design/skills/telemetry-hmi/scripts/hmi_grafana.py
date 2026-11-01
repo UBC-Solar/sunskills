@@ -330,27 +330,87 @@ class Board:
             f' _value: if r.now > 0 then 2 else if r._value > 0 then 1 else 0}}))\n'
         )
 
-    def fault_banner(self, cls: str, fields: list[str]) -> dict:
-        """Full-width bar for peripheral vision: solid red 'ACTIVE FAULT: <signals>' while any
-        fault bit is set, otherwise blank (no text). Cleared faults stay on the strip."""
-        # findColumn + joinStr instead of reduce(): reduce returns no rows when nothing changes
-        # the accumulator, which left the bar blank instead of "No faults".
-        q = (
-            'import "array"\nimport "strings"\n'
-            'st = ' + self._fault_state(cls, fields) +
-            '  |> last()\n  |> group()\n'
-            'act = st |> filter(fn: (r) => r._value == 2) |> findColumn(fn: (key) => true, column: "_field")\n'
-            'msg = if length(arr: act) > 0 then "ACTIVE FAULT: " + strings.joinStr(arr: act, v: ", ")\n'
-            '      else ""\n'
+    def _check(self, name: str, c: dict) -> str:
+        """Flux for one warning check -> a table with one string _value ('' when fine).
+
+        c = {"cls", "field", "when": Flux bool on r._value, "text": label,
+             "show": "int" | "float1" | None (append the value), "unit": str, "range": "-1h" (optional)}
+        """
+        start = c.get("range", "v.timeRangeStart")
+        stop = "now()" if "range" in c else "v.timeRangeStop"
+        if c.get("show") == "int":
+            val = '": " + string(v: int(v: r._value)) + "' + c.get("unit", "") + '"'
+        elif c.get("show") == "float1":
+            val = '": " + string(v: float(v: int(v: float(v: r._value) * 10.0)) / 10.0) + "' + c.get("unit", "") + '"'
+        else:
+            val = '""'
+        return (
+            f'{name} = from(bucket: "{BUCKET}")\n'
+            f'  |> range(start: {start}, stop: {stop})\n'
+            f'  |> filter(fn: (r) => r["_measurement"] == "{self.name}" and r["class"] == "{c["cls"]}"'
+            f' and r["_field"] == "{c["field"]}")\n'
+            f'  |> last()\n'
+            # '{r with ...}' + keep: a map that builds a fresh record from constants returns no
+            # rows in this Flux version (plain-label checks silently never fired).
+            f'  |> map(fn: (r) => ({{r with _value: if {c["when"]} then "{c["text"]}" + {val} else ""}}))\n'
+            f'  |> keep(columns: ["_value"])\n'
+        )
+
+    def _link_check(self, name: str, heartbeat_cls: str, stale_s: float = 3.0) -> str:
+        """Warning when the board's heartbeat is older than stale_s, or it rebooted < 60 s ago."""
+        return (
+            f'{name} = from(bucket: "{BUCKET}")\n'
+            f'  |> range(start: -1h)\n'
+            f'  |> filter(fn: (r) => r["_measurement"] == "{self.name}" and r["class"] == "{heartbeat_cls}")\n'
+            f'  |> last()\n'
+            f'  |> map(fn: (r) => ({{r with _value:\n'
+            f'      if float(v: uint(v: now()) - uint(v: r._time)) / 1000000000.0 > {stale_s} then "{self.name} link lost"\n'
+            f'      else if float(v: r._value) < 60.0 then "{self.name} rebooted " + string(v: int(v: r._value)) + " s ago"\n'
+            f'      else ""}}))\n'
+            f'  |> keep(columns: ["_value"])\n'
+        )
+
+    def fault_banner(self, cls: str, fields: list[str], warnings: list[dict] | None = None,
+                     heartbeat: str | None = None) -> dict:
+        """Full-width bar for peripheral vision.
+
+        Red 'ACTIVE FAULT: <bits>' while a fault bit is set (plus any warnings after it);
+        orange 'WARNING: <conditions>' when something is wrong that isn't a fault bit (no GPS
+        satellites, link lost, sensor not reading, value in its caution band...); blank otherwise.
+        """
+        warnings = warnings or []
+        parts = ['import "array"\nimport "strings"\n',
+                 'st = ' + self._fault_state(cls, fields) + '  |> last()\n  |> group()\n',
+                 'act = st |> filter(fn: (r) => r._value == 2) |> findColumn(fn: (key) => true, column: "_field")\n']
+        names = []
+        if heartbeat:
+            parts.append(self._link_check("wl", heartbeat)); names.append("wl")
+        for i, c in enumerate(warnings):
+            parts.append(self._check(f"w{i}", c)); names.append(f"w{i}")
+        if names:
+            # group() merges the per-check tables (findColumn only reads the first table);
+            # union() needs at least two streams.
+            src = f'union(tables: [{", ".join(names)}])' if len(names) > 1 else names[0]
+            parts.append(f'warn = {src} |> group() |> filter(fn: (r) => r._value != "")'
+                         f' |> findColumn(fn: (key) => true, column: "_value")\n')
+        else:
+            parts.append('warn = []\n')
+        parts.append(
+            'f = if length(arr: act) > 0 then "ACTIVE FAULT: " + strings.joinStr(arr: act, v: ", ") else ""\n'
+            'w = if length(arr: warn) > 0 then "WARNING: " + strings.joinStr(arr: warn, v: ", ") else ""\n'
+            'msg = if f != "" and w != "" then f + "   |   " + w else f + w\n'
             'array.from(rows: [{_value: msg}]) |> yield(name: "banner")'
         )
-        maps = [{"type": "regex", "options": {"pattern": "^ACTIVE.*", "result": {"color": RED, "index": 0}}},
-                {"type": "special", "options": {"match": "empty", "result": {"text": " ", "color": TRANSPARENT, "index": 1}}}]
-        p = stat(self.t("Fault banner"), q, "none", mappings=maps, sparkline=False,
-                 description="Red with the signal names while a fault bit is set; blank otherwise. Faults "
-                             "that have cleared show as yellow CLEARED on the fault strip below.")
+        q = "".join(parts)
+        maps = [{"type": "regex", "options": {"pattern": "^ACTIVE FAULT.*", "result": {"color": RED, "index": 0}}},
+                {"type": "regex", "options": {"pattern": "^WARNING.*", "result": {"color": ORANGE, "index": 1}}},
+                {"type": "special", "options": {"match": "empty", "result": {"text": " ", "color": TRANSPARENT, "index": 2}}}]
+        desc = ("Red: a fault bit is set now (names listed). Orange: something is wrong that is not a fault "
+                "bit: " + "; ".join([f"{self.name} link lost / rebooted"] * bool(heartbeat) +
+                                     [c["text"] for c in warnings]) + ". Blank when everything is normal.")
+        p = stat(self.t("Fault banner"), q, "none", mappings=maps, sparkline=False, description=desc)
         p["options"]["reduceOptions"]["fields"] = "/.*/"
-        p["options"]["text"] = {"valueSize": 30}
+        p["options"]["text"] = {"valueSize": 28}
         p["options"]["justifyMode"] = "center"
         p["options"]["textMode"] = "value"
         return p
