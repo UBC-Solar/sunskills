@@ -27,7 +27,7 @@ CAR = "Cascadia"
 
 
 def mcu_health(b: Board, d: Dash, cls: str, v_field: str, t_field: str, uv_mv: int, ot_c: int, w: int = 4):
-    d.add(stat(b.t("MCU Vdd", "mV"), b.q(cls, v_field), "suffix: mV", steps((None, RED), (uv_mv, GREY)), decimals=0,
+    d.add(stat(b.t("MCU Vdd", "mV"), b.q(cls, v_field), "suffix: mV", steps((None, GREY), (0, RED), (uv_mv, GREY)), decimals=0,
                description=f"{v_field}: MCU supply. Red below {uv_mv} mV, where firmware sets the undervoltage flag. "
                            "0 means the ADC read failed."), w=w, h=5)
     d.add(stat(b.t("MCU temperature", "°C"), b.q(cls, t_field), "celsius", steps((None, GREY), (ot_c, RED)),
@@ -40,6 +40,7 @@ def tel() -> Dash:
     b = Board("TEL")
     d = Dash(f"PROD: TEL - {CAR}", "cascadia-prod-tel", TAGS,
              "Telemetry board: link health, GPS position/status/motion, IMU. Health and faults first, detail below.")
+    d.add(b.fault_banner("TELDiagnostics", ["TELWatchdogReset", "IMUReadFail", "IMUWriteFail", "GPSReadFail", "GPSWriteFail", "MCUOvertemp", "MCUUndervoltage"]), w=24, h=3)
     d.row("Health & faults")
     d.add(b.freshness("TELTimeSinceBootup"), w=4, h=5)
     d.add(b.uptime("TELTimeSinceBootup", "TELTimeSinceBootUp"), w=4, h=5)
@@ -117,6 +118,7 @@ def mdi() -> Dash:
     b = Board("MDI")
     d = Dash(f"PROD: MDI - {CAR}", "cascadia-prod-mdi", TAGS,
              "Motor driver interface: link health, faults and the motor RTD temperature.")
+    d.add(b.fault_banner("MDIDiagnostics", ["MDIWatchdogReset", "MDIVoltageOverThreshold", "MDIMotorOverTemp", "MDIRTDFault", "MDIRTDCommError"]), w=24, h=3)
     d.row("Health & faults")
     d.add(b.freshness("MDITimeSinceBootup"), w=6, h=5)
     d.add(b.uptime("MDITimeSinceBootup", "MDITimeSinceBootUp"), w=6, h=5)
@@ -154,6 +156,7 @@ def drd() -> Dash:
     b = Board("DRD")
     d = Dash(f"PROD: DRD - {CAR}", "cascadia-prod-drd", TAGS,
              "Driver dashboard: link health, faults, pedal/drive inputs and the motor command sent to MDI.")
+    d.add(b.fault_banner("DRDDiagnostics", ["ADCOutOfRange", "ADCMismatch", "DRDWatchdogReset", "MotorCommFault", "DRDMCUOverTemp", "DRDMCUUnderVoltage"]), w=24, h=3)
     d.row("Health & faults")
     d.add(b.freshness("DRDTimeSinceBootup"), w=4, h=5)
     d.add(b.uptime("DRDTimeSinceBootup", "DRDTimeSinceBootUp"), w=4, h=5)
@@ -203,6 +206,7 @@ def strd() -> Dash:
     b = Board("STR")
     d = Dash(f"PROD: STR - {CAR}", "cascadia-prod-str", TAGS,
              "Steering wheel: link health, faults, button/switch states and cruise set speed.")
+    d.add(b.fault_banner("STRFlags", ["STRMCUUnderVoltage", "STRMCUOverTemp"]), w=24, h=3)
     d.row("Health & faults")
     d.add(b.freshness("STRTimeSinceBootup"), w=6, h=5)
     d.add(b.uptime("STRTimeSinceBootup", "STRTimeSinceBootUp"), w=6, h=5)

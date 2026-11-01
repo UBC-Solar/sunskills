@@ -140,7 +140,7 @@ def stat(title: str, query: str, unit: str, thresholds=None, mappings=None, deci
         if st["color"] == GREY:
             st["color"] = TRANSPARENT
     for m in mappings or []:
-        for r in ([m["options"]["result"]] if m["type"] == "range" else m["options"].values()):
+        for r in ([m["options"]["result"]] if m["type"] in ("range", "regex", "special") else m["options"].values()):
             if r.get("color") in (GREY, DARK, BLUE):
                 r["color"] = TRANSPARENT
     return _panel(
@@ -148,7 +148,7 @@ def stat(title: str, query: str, unit: str, thresholds=None, mappings=None, deci
         _defaults(unit, thresholds, mappings, decimals, vmin, vmax),
         {
             "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": False},
-            "colorMode": "background", "graphMode": "area" if sparkline else "none",
+            "colorMode": "background_solid", "graphMode": "area" if sparkline else "none",
             "justifyMode": "auto", "orientation": "auto", "textMode": "auto",
         },
         description,
@@ -312,12 +312,10 @@ class Board:
         return stat(self.t("Uptime", "s"), self.q(cls, field, "last"), "s", decimals=0,
                     description=f"{field}: seconds since boot. A drop to ~0 means the board reset.")
 
-    def faults(self, cls: str, fields: list[str], title: str = "Faults", description: str = "") -> dict:
-        """Fault strip. Each row: OK (grey) until the signal faults, FAULT (red) while it is set,
-        then CLEARED (yellow) for the rest of the time range shown, so a past fault stays visible
-        without a separate status tile."""
+    def _fault_state(self, cls: str, fields: list[str]) -> str:
+        """Flux (no yield): per signal 0 = OK, 1 = CLEARED (faulted earlier in range), 2 = FAULT now."""
         field_expr = " or ".join(f'r["_field"] == "{f}"' for f in fields)
-        q = (
+        return (
             f'from(bucket: "{BUCKET}")\n'
             f'  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n'
             f'  |> filter(fn: (r) => r["_measurement"] == "{self.name}")\n'
@@ -330,8 +328,38 @@ class Board:
             f'  |> cumulativeSum(columns: ["_value"])\n'
             f'  |> map(fn: (r) => ({{_time: r._time, _field: r._field,'
             f' _value: if r.now > 0 then 2 else if r._value > 0 then 1 else 0}}))\n'
-            f'  |> yield(name: "fault_state")'
         )
+
+    def fault_banner(self, cls: str, fields: list[str]) -> dict:
+        """Full-width bar for peripheral vision: solid red 'ACTIVE FAULT: <signals>' while any
+        fault bit is set, otherwise blank (no text). Cleared faults stay on the strip."""
+        # findColumn + joinStr instead of reduce(): reduce returns no rows when nothing changes
+        # the accumulator, which left the bar blank instead of "No faults".
+        q = (
+            'import "array"\nimport "strings"\n'
+            'st = ' + self._fault_state(cls, fields) +
+            '  |> last()\n  |> group()\n'
+            'act = st |> filter(fn: (r) => r._value == 2) |> findColumn(fn: (key) => true, column: "_field")\n'
+            'msg = if length(arr: act) > 0 then "ACTIVE FAULT: " + strings.joinStr(arr: act, v: ", ")\n'
+            '      else ""\n'
+            'array.from(rows: [{_value: msg}]) |> yield(name: "banner")'
+        )
+        maps = [{"type": "regex", "options": {"pattern": "^ACTIVE.*", "result": {"color": RED, "index": 0}}},
+                {"type": "special", "options": {"match": "empty", "result": {"text": " ", "color": TRANSPARENT, "index": 1}}}]
+        p = stat(self.t("Fault banner"), q, "none", mappings=maps, sparkline=False,
+                 description="Red with the signal names while a fault bit is set; blank otherwise. Faults "
+                             "that have cleared show as yellow CLEARED on the fault strip below.")
+        p["options"]["reduceOptions"]["fields"] = "/.*/"
+        p["options"]["text"] = {"valueSize": 30}
+        p["options"]["justifyMode"] = "center"
+        p["options"]["textMode"] = "value"
+        return p
+
+    def faults(self, cls: str, fields: list[str], title: str = "Faults", description: str = "") -> dict:
+        """Fault strip. Each row: OK (grey) until the signal faults, FAULT (red) while it is set,
+        then CLEARED (yellow) for the rest of the time range shown, so a past fault stays visible
+        without a separate status tile."""
+        q = self._fault_state(cls, fields) + '  |> yield(name: "fault_state")'
         return timeline(self.t(title), q, FAULT_STATES,
                         (description + " " if description else "") +
                         "Per row: OK, FAULT (red) while set, CLEARED (yellow) once it has faulted in the "

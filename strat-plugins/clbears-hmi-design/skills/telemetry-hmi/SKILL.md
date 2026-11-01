@@ -28,6 +28,10 @@ The method distils four sources (summaries in `references/`):
    firmware sends it → fix the DBC; firmware doesn't → fix or drop the panel. Write the
    evidence (file:line) into the PR.
 3. **Use the standard board skeleton** (all boards identical, so readers know where to look):
+   - **Fault banner (very top, full width, `Board.fault_banner`):** blank until a fault bit is
+     set, then solid red "ACTIVE FAULT: <signals>". Full width so it is caught in peripheral
+     vision; no text otherwise so it doesn't compete for attention. Cleared faults are not on the
+     banner (they are yellow CLEARED on the strip).
    - **Row 1, Health & faults:** link freshness (s since last frame, red when stale),
      uptime (reset detector), MCU Vdd / temperature with the firmware fault limit as the
      red threshold, the board's key state, and **one fault strip** (state timeline, OK grey /
