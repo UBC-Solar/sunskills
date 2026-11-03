@@ -25,6 +25,16 @@
       },
       "source": "./emb-plugins/gbian-emb-ticket",
       "category": "productivity"
+    },
+    {
+      "name": "gbian-can-sync",
+      "description": "Sync a firmware_v4 board's CAN messages into sunlink: DBC signals plus board and Pit Crew Grafana dashboard panels",
+      "author": {
+        "name": "gregorybian",
+        "url": "https://github.com/gregorybian"
+      },
+      "source": "./emb-plugins/gbian-can-sync",
+      "category": "development"
     }
   ]
 }

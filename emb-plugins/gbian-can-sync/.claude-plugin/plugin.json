@@ -1,0 +1,10 @@
+{
+  "name": "gbian-can-sync",
+  "description": "Sync a firmware_v4 board's CAN messages into sunlink: diff firmware TX against the DBC, update brightside.dbc, and add panels to the board and Pit Crew Grafana dashboards",
+  "version": "0.1.0",
+  "author": {
+    "name": "gregorybian",
+    "url": "https://github.com/gregorybian"
+  },
+  "repository": "https://github.com/UBC-Solar/sunskills"
+}
