@@ -1,0 +1,10 @@
+{
+  "name": "gbian-teach",
+  "description": "Teach a concept by doing: quiz what you already know, a guided hands-on exercise that explains each concept as you need it, a test, then more exercises with less help",
+  "version": "0.2.0",
+  "author": {
+    "name": "gregorybian",
+    "url": "https://github.com/gregorybian"
+  },
+  "repository": "https://github.com/UBC-Solar/sunskills"
+}

@@ -25,6 +25,16 @@
       },
       "source": "./emb-plugins/gbian-emb-ticket",
       "category": "productivity"
+    },
+    {
+      "name": "gbian-teach",
+      "description": "Teach a concept by doing: quiz what you already know, a guided hands-on exercise that explains each concept as you need it, a test, then more exercises with less help",
+      "author": {
+        "name": "gregorybian",
+        "url": "https://github.com/gregorybian"
+      },
+      "source": "./emb-plugins/gbian-teach",
+      "category": "learning"
     }
   ]
 }
