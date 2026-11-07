@@ -25,6 +25,16 @@
       },
       "source": "./emb-plugins/gbian-emb-ticket",
       "category": "productivity"
+    },
+    {
+      "name": "clbears-hmi-design",
+      "description": "Telemetry HMI design: situation-awareness and high-performance HMI method for Grafana/LCD/Sunglasses views, a consistent Grafana dashboard generator, and a linter that checks dashboards against the DBC",
+      "author": {
+        "name": "clbears",
+        "url": "https://github.com/clbears"
+      },
+      "source": "./strat-plugins/clbears-hmi-design",
+      "category": "development"
     }
   ]
 }
